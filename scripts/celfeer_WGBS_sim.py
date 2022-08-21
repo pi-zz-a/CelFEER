@@ -70,7 +70,6 @@ def complex_mix(sample, proportions, unknown_cols, num_tissues):
 
 ########  expectation-maximization algorithm  ########
 
-
 def expectation(beta, alpha):
     """calculates the components needed for log likelihood for each iteration of beta and alpha
 
@@ -167,18 +166,18 @@ def em(x, y, num_iterations, convergence_criteria):
     for i in range(num_iterations):
 
         p = expectation(beta, alpha)
-        a, g = maximization(p, x, y)
+        a, b = maximization(p, x, y)
 
         # check convergence of alpha and beta
         alpha_diff = np.mean(abs(a - alpha)) / np.mean(abs(alpha))
-        beta_diff = np.mean(abs(g - beta)) / np.mean(abs(beta))
+        beta_diff = np.mean(abs(b - beta)) / np.mean(abs(beta))
 
         if alpha_diff + beta_diff < convergence_criteria:  # if convergence criteria, break
             break
 
         else:  # set current evaluation of alpha and beta
             alpha = a
-            beta = g
+            beta = b
 
     ll = log_likelihood(
         p, x, y, beta, alpha
@@ -193,7 +192,7 @@ if __name__ == "__main__":
 
     # read command line input parameters
     parser = argparse.ArgumentParser(
-        description="CelFEER - Read resolution adaptation of CelFiE: Cell-free DNA decomposition."
+        description="CelFEER - Code to perform simulations using WGBS data."
     )
     parser.add_argument("input_path", help="the path to the input file")
     parser.add_argument("output_directory", help="the path to the output directory")
@@ -232,7 +231,7 @@ if __name__ == "__main__":
         "--random_restarts",
         default=10,
         type=int,
-        help="CelFiE will perform several random restarts and select the one with the highest log-likelihood. Default 10.",
+        help="CelFEER will perform several random restarts and select the one with the highest log-likelihood. Default 10.",
     )
     parser.add_argument(
         "-f",
