@@ -63,8 +63,9 @@ def complex_mix(sample, proportions, unknown_cols, num_tissues):
 
     true_beta = y / np.sum(y, axis=2)[:, :, np.newaxis]
 
-    for col in unknown_cols:
-        y[col] = 0
+    if unknown_cols:
+        for col in unknown_cols:
+            y[col] = 0
 
     return np.nan_to_num(mix_x), np.nan_to_num(y), np.nan_to_num(true_beta)
 
@@ -207,7 +208,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-u",
         "--unknowns",
-        default="",
+        default=None,
         type=str,
         help="Tissues in the reference data that should be treated as unknown. Give tissue columns separated by " +
              "comma, e.g. 0,3,6. Default is none.",
@@ -236,13 +237,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "-f",
         "--proportions",
-        default="true_alpha_100n7t.pkl",
+        default=None,
         type=str,
         help="Pickle file containing the tissue mixture proportions. Put None if the proportions are hard coded.",
     )
     args = parser.parse_args()
     np.random.seed(args.parallel_job_id)
-    unknowns = [int(x) for x in args.unknowns.split(",")]
+    unknowns = [int(x) for x in args.unknowns.split(",")] if args.unknowns else None
     num_tissues = args.num_samples
 
     # make output directory if it does not exist
@@ -279,14 +280,14 @@ if __name__ == "__main__":
 
     ll_max, alpha_max, beta_max = max(random_restarts)  # pick best random restart per replicate
 
-    with open(args.output_directory + "/" + str(args.parallel_job_ids) + "_alpha_est.pkl", "wb") as f:
+    with open(args.output_directory + "/" + str(args.parallel_job_id) + "_alpha_est.pkl", "wb") as f:
         pkl.dump(alpha_max, f)
 
-    with open(args.output_directory + "/" + str(args.parallel_job_ids) + "_alpha_true.pkl", "wb") as f:
+    with open(args.output_directory + "/" + str(args.parallel_job_id) + "_alpha_true.pkl", "wb") as f:
         pkl.dump(props, f)
 
-    with open(args.output_directory + "/" + str(args.parallel_job_ids) + "_beta_est.pkl", "wb") as f:
+    with open(args.output_directory + "/" + str(args.parallel_job_id) + "_beta_est.pkl", "wb") as f:
         pkl.dump(beta_max, f)
 
-    with open(args.output_directory + "/" + str(args.parallel_job_ids) + "_beta_true.pkl", "wb") as f:
+    with open(args.output_directory + "/" + str(args.parallel_job_id) + "_beta_true.pkl", "wb") as f:
         pkl.dump(true_beta, f)
