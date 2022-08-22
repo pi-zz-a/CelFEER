@@ -1,3 +1,4 @@
+import argparse
 import os
 import pickle as pkl
 
@@ -34,7 +35,7 @@ def generate_reads(alpha, beta, x_depths):
     total_indiv = alpha.shape[0]
     i, total_cpg = beta.shape[0], beta.shape[1]
 
-    beta = np.zeros((total_indiv, total_cpg, 5))
+    reads = np.zeros((total_indiv, total_cpg, 5))
 
     for n in range(total_indiv):
         for j in range(total_cpg):
@@ -51,11 +52,11 @@ def generate_reads(alpha, beta, x_depths):
             )  # assign reads based on the tissue proportions for that individual
             probability = beta_cpg[mix]
 
-            beta[n, j] = np.sum(
+            reads[n, j] = np.sum(
                 np.random.binomial(1, probability, size=(depth, 5)), axis=0
             )  # the beta is the sum of all the individual reads coming from the tissues contributing to that cpg in that individual
 
-    return beta
+    return reads
 
 
 def generate_counts(count, probability):
@@ -175,7 +176,7 @@ def add_pseudocounts(array, meth):
     meth[idx1[0], idx1[1]] += 0.01
     return meth
 
-def check_gamma(array):
+def check_beta(array):
     """
     checks for values of beta where log likelihood cannot be computed, returns
     true if can be computed
@@ -315,9 +316,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="CelFEER - Code to perform simulations on generated data."
     )
-    parser.add_argument("input_path", help="the path to the input file")
     parser.add_argument("output_directory", help="the path to the output directory")
-    parser.add_argument("num_samples", type=int, help="Number of cfdna samples")
+    parser.add_argument("num_samples", type=int, help="Number of individuals")
     parser.add_argument("num_tissues", type=int, help="Number of cell types")
     parser.add_argument("num_cpgs", type=int, help="Number of cpg sites")
     parser.add_argument("depth", type=int, help="expected depth of cfdna reads")
@@ -332,8 +332,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "-u",
         "--unknowns",
-        default="",
-        type=str,
+        default=0,
+        type=int,
         help="Number of tissues in the reference data that should be treated as unknown.",
     )
     parser.add_argument(
@@ -371,9 +371,8 @@ if __name__ == "__main__":
     random_restarts = []
     # perform for 10 random restarts
     for i in range(args.random_restarts):
-        alpha, beta, ll = em(X, Y, args.max_iterations)
+        alpha, beta, ll = em(X, Y, args.max_iterations, args.convergence)
         random_restarts.append((ll, alpha, beta))
-        print(ll)
 
     ll_max, alpha_max, beta_max = max(random_restarts)
 

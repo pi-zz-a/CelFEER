@@ -1,7 +1,7 @@
 import csv
 import numpy as np
-import bottleneck as bn  # faster nan calcs
 import heapq
+import bottleneck as bn
 from collections import defaultdict
 import sys
 
@@ -16,39 +16,39 @@ def distance(values, variant):
     return: distance between each tissue methylation prop and median, CpG
     median methylation
     """
-    # original code:
     median = bn.nanmedian(values)
     metric = 0
     if variant == "original":
         dist = np.abs(values - median)
-    elif variant == "hypomin" or variant == "hypo":
+
     # for hypo only:
+    elif variant == "hypomin" or variant == "hypo":
         if variant == "hypomin":
-            median = [min(np.concatenate([values[:i],values[i+1:]])) for i in range(len(values))]
-        dist = median-values
+            median = [min(np.concatenate([values[:i], values[i + 1:]])) for i in range(len(values))]
+        dist = median - values
         metric = 1
+
     # for hyper only:
     elif variant == "hypermax" or variant == "hyper":
-        if variant == "hypermax": 
-            median = [max(np.concatenate([values[:i],values[i+1:]])) for i in range(len(values))]
+        if variant == "hypermax":
+            median = [max(np.concatenate([values[:i], values[i + 1:]])) for i in range(len(values))]
         dist = values - median
         metric = 2
+
+    # look for both hypo- and hypermethylated sites, but measure distance from min and max respectively
+    # (instead of from median)
     elif variant == "mixed":
-        #median = bn.nanmedian(values)
-        mn = np.array([min(np.concatenate([values[:i],values[i+1:]])) for i in range(len(values))])
-        mx = np.array([max(np.concatenate([values[:i],values[i+1:]])) for i in range(len(values))])
-        #dist_med = np.abs(values - median)
+        mn = np.array([min(np.concatenate([values[:i], values[i + 1:]])) for i in range(len(values))])
+        mx = np.array([max(np.concatenate([values[:i], values[i + 1:]])) for i in range(len(values))])
         dist_min = mn - values
         dist_max = values - mx
-        #dist_options = np.array([dist_med,dist_min,dist_max])
-        dist_options = np.array([dist_min,dist_max])
-        #med_options = np.array([np.array(median).repeat(len(values)), mn, mx])
+        dist_options = np.array([dist_min, dist_max])
         med_options = np.array([mn, mx])
         idx = np.where(dist_options == np.amax(dist_options))[0][0]
         dist = dist_options[idx]
         median = med_options[idx]
         metric = idx
-    else: 
+    else:
         raise Exception("Not a valid variant: pick between original, hypo, hypomin, hyper, hypermax, mixed")
     return dist, median, metric
 
@@ -64,14 +64,12 @@ def add_to_heap(heap, n, dist, median, cpg, percent, num, metric):
     cpg: cpg positional information (tuple of chrom, start, end)
     percent: tissue methylation percent
     num: tissue number
-
-    return: none
     """
 
-    if len(heap) < 3/2*n:  # only keep track of the n CpGs with greatest distance
+    if len(heap) < 3 / 2 * n:
         heapq.heappush(
             heap, (dist, cpg, median, percent, num, metric)
-        )  # note- works because it only checks value of dist, not the rest of the tuple
+        )
     else:
         heapq.heappushpop(heap, (dist, cpg, median, percent, num, metric))
 
@@ -98,8 +96,8 @@ def get_cpgs(heap_list):
 
 
 if __name__ == "__main__":
-    # modification on line 107: ensure min depth of tissue in question
-    # modification on line 118: ensure TIM is not TIM in top 3/2 of other tissues
+    # modification on line 107: ensure min depth of tissue whose marker is found
+    # modification on line 118: ensure marker is not marker in top 3/2*num_values of other tissues
 
     # user parameters
     input_file = sys.argv[1]  # input bedfile of WGBS data
@@ -108,9 +106,15 @@ if __name__ == "__main__":
     tissues = int(sys.argv[4])  # total number of tissues to calc tims for
     depth_filter = int(sys.argv[5])  # depth filter
     nan_filter = int(sys.argv[6])  # number of nans to allow in TIM calc
-    extra_filter = sys.argv[7]
-    variant = sys.argv[8]
-    
+    extra_filter = sys.argv[7]  # extra filter to switch on the modifications
+    variant = sys.argv[8]  # original measures from median, hypo looks for smallest measured from median
+    # possible variants:
+    # original measures from median
+    # hypo finds smallest methylation from median
+    # hyper finds largest methylation from median
+    # hypomin finds smallest methylation from min methylation of other tissues
+    # hypermax finds largest methylation from max methylation of other tissues
+
     if extra_filter == "False":
         extra_filter = False
     else:
@@ -133,18 +137,18 @@ if __name__ == "__main__":
             np.seterr(
                 divide="ignore", invalid="ignore"
             )  # ignore Nans when there are no counts
-            percents = meth / depth.reshape(1,tissues).T
-            percents *= [0,0.25,0.5,0.75,1]
+            percents = meth / depth.reshape(1, tissues).T
+            percents *= [0, 0.25, 0.5, 0.75, 1]
             percents = percents.sum(axis=1)
             nan_count = np.count_nonzero(np.isnan(percents))
 
             if (
-                median_depth >= depth_filter and nan_count <= nan_filter
+                    median_depth >= depth_filter and nan_count <= nan_filter
             ):  # data must pass basic quality to be a tim
                 dist, median, metric = distance(percents, variant)
 
                 for i, col_dist in enumerate(dist):
-                    if not np.isnan(col_dist): #and col_dist > 0.5:
+                    if not np.isnan(col_dist):  # and col_dist > 0.5:
                         if not extra_filter or (depth[i] >= depth_filter and extra_filter):
                             add_to_heap(
                                 distance_heaps[i],
@@ -163,7 +167,7 @@ if __name__ == "__main__":
     cpgs = get_cpgs(new_heaps)
     if not extra_filter:
         all_cpgs = cpgs
-    
+
     # write the output file as tab delimited file with columns being:
     # chrom, start, end, tissue # for tim, absolute difference, methylation prop for tissue, median methylation
     # for all other tissues
@@ -178,8 +182,7 @@ if __name__ == "__main__":
                 "end",
                 "tissue number",
                 "difference",
-                "tissue methylation",
-                "other tissue methylation",
+                "tissue methylation"
             ]
         )
 
@@ -189,5 +192,5 @@ if __name__ == "__main__":
             x = np.array(all_cpgs[c])
             if len(x) == 1:
                 position = [c[0], c[1], c[2]]
-                entry = [cpgs[c][0][0], cpgs[c][0][1], cpgs[c][0][2], cpgs[c][0][3]]
+                entry = [cpgs[c][0][0], cpgs[c][0][1], cpgs[c][0][2]]
                 dist_out.writerow(position + entry)
