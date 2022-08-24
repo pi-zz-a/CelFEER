@@ -302,13 +302,13 @@ if __name__ == "__main__":
         print("writing to " + args.output_directory + "/")
 
     data_df = pd.read_csv(
-        args.input_path, delimiter="\t")  # read input samples/reference data
+        args.input_path, delimiter="\t", header=None, skiprows=1)  # read input samples/reference data
 
     print(f"finished reading {args.input_path}")
     print()
 
-    output_alpha_file = f"{args.output_directory}_tissue_proportions.txt"
-    output_beta_file = f"{args.output_directory}_methylation_proportions.txt"
+    output_alpha_file = f"{args.output_directory}/{args.parallel_job_id}_tissue_proportions.txt"
+    output_beta_file = f"{args.output_directory}/{args.parallel_job_id}_methylation_proportions.txt"
 
     print(f"beginning generation of {args.output_directory}")
     print()
@@ -316,8 +316,12 @@ if __name__ == "__main__":
     # make input arrays and add the specified number of unknowns
     x, y = define_arrays(data_df, int(args.num_samples), int(args.unknowns))
 
+    data_df_header = pd.read_csv(
+       args.input_path, delimiter="\t", nrows=1
+    )
+
     # get header for output files
-    samples, tissues = get_header(data_df, args.num_samples, args.unknowns)
+    samples, tissues = get_header(data_df_header, args.num_samples, args.unknowns)
 
     # Run EM with the specified iterations and convergence criteria
     random_restarts = []
