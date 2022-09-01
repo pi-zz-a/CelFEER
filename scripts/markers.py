@@ -114,6 +114,7 @@ if __name__ == "__main__":
     # hyper finds largest methylation from median
     # hypomin finds smallest methylation from min methylation of other tissues
     # hypermax finds largest methylation from max methylation of other tissues
+    # mixed uses hypomin if this distance is larger than hypermax and vice versa.
 
     if extra_filter == "False":
         extra_filter = False
