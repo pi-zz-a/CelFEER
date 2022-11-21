@@ -1,6 +1,6 @@
 # Recommended CelFEER data processing guide
 
-Input data should be aligned bam files, because files that are processed further have already averaged over individual reads.
+This is a very rough guide on how to process WGBS reads as input for CelFEER.
 
 1. Use [Bismark](https://www.bioinformatics.babraham.ac.uk/projects/bismark/) to map WGBS reads and perform methylation calls.
 2. After Bismark's methylation call, you should get a CpG_context file. Sort this file on the read identifiers, then run bismark_meth_to_input.py to get the percentage of methylated CpG sites at each read. 
